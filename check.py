@@ -19,19 +19,19 @@ match_p_src = matches['match_p_src']
 match_p_dst = matches['match_p_dst']
 
 # # Plot images with Corresponding point
-# color_list = ['b', 'g', 'r', 'y', 'w', 'k', 'm', 'b', 'g', 'r', 'y', 'w', 'k', 'm', 'b', 'g', 'r', 'y', 'w', 'k']
-# fig, (ax1, ax2) = plt.subplots(1, 2)
-# plt.figure(figsize=(8, 8), dpi=80)
-# fig.suptitle('Perfect Matches', fontsize=16)
-# ax1.set_title('Src_img')
-# ax1.imshow(src_img)
-# ax1.scatter(match_p_src[0], match_p_src[1], c=color_list)
-#
-# plt.figure(figsize=(8, 8), dpi=80)
-# ax2.set_title('Dst_img')
-# ax2.imshow(dst_img)
-# ax2.scatter(match_p_dst[0], match_p_dst[1], c=color_list)
-# plt.show()
+color_list = ['b', 'g', 'r', 'y', 'w', 'k', 'm', 'b', 'g', 'r', 'y', 'w', 'k', 'm', 'b', 'g', 'r', 'y', 'w', 'k']
+fig, (ax1, ax2) = plt.subplots(1, 2)
+plt.figure(figsize=(8, 8), dpi=80)
+fig.suptitle('Perfect Matches', fontsize=16)
+ax1.set_title('Src_img')
+ax1.imshow(src_img)
+ax1.scatter(match_p_src[0], match_p_src[1], c=color_list)
+
+plt.figure(figsize=(8, 8), dpi=80)
+ax2.set_title('Dst_img')
+ax2.imshow(dst_img)
+ax2.scatter(match_p_dst[0], match_p_dst[1], c=color_list)
+plt.show()
 # ##################################################################################
 # # Read point that not matching:
 # matches = scipy.io.loadmat('matches')
@@ -75,5 +75,40 @@ def compute_homography_naive(match_p_src: np.ndarray,
     u, s, vh = svd(A)
     return vh[-1].reshape(3, 3)
 
+def compute_forward_homography_slow(
+        homography: np.ndarray,
+        src_image: np.ndarray,
+        dst_image_shape: tuple = (1088, 1452, 3)) -> np.ndarray:
+    """Compute a Forward-Homography in the Naive approach, using loops.
+
+    Iterate over the rows and columns of the source image, and compute
+    the corresponding point in the destination image using the
+    projective homography. Place each pixel value from the source image
+    to its corresponding location in the destination image.
+    Don't forget to round the pixel locations computed using the
+    homography.
+
+    Args:
+        homography: 3x3 Projective Homography matrix.
+        src_image: HxWx3 source image.
+        dst_image_shape: tuple of length 3 indicating the destination
+        image height, width and color dimensions.
+
+    Returns:
+        The forward homography of the source image to its destination.
+    """
+    # return new_image
+    new_img = np.zeros(dst_image_shape, dtype=np.uint8)
+    for y in range(src_image.shape[0]):
+        for x in range(src_image.shape[1]):
+            new_pos = homography @ np.array([x, y, 1]).T # new_pos = H *X'
+            dst_x, dst_y = int(new_pos[0]/new_pos[2]), int(new_pos[1]/new_pos[2])
+            if src_image.shape[1] >= dst_x >= 0 and src_image.shape[0] >= dst_y >= 0:
+                new_img[dst_y, dst_x] = src_image[y, x]
+    return new_img
+
+
+
 H = compute_homography_naive(match_p_src, match_p_dst)
-print(f"H = {H}")
+out_img = compute_forward_homography_slow(H, src_img, dst_img.shape)
+plt.imshow(out_img), plt.title("forward transformation"), plt.show()
