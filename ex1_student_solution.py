@@ -42,7 +42,7 @@ class Solution:
                         0, 0, 0,
                         u_i*u_t_i, u_i*u_t_i, u_i])
             mat.append([0, 0, 0,
-                        -match_p_dst[i,0], -match_p_dst[i,1], -1,
+                        -match_p_dst, -match_p_dst, -1,
                         u_i*u_t_i, u_i*u_t_i, u_i])
         A = np.array(mat)
         u, s, vh = svd(A)
