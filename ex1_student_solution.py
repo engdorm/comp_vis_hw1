@@ -33,7 +33,7 @@ class Solution:
         """
         # return homography
         mat = []
-        for i in match_p_src.shape[1]:
+        for i in range(match_p_src.shape[1]):
             u_i = match_p_src[0,i]
             v_i = match_p_src[1, i]
             u_t_i = match_p_dst[0,i]
@@ -45,8 +45,8 @@ class Solution:
                         -match_p_dst[i,0], -match_p_dst[i,1], -1,
                         u_i*u_t_i, u_i*u_t_i, u_i])
         A = np.array(mat)
-        u, s, vh = np.linalg.svd(A)
-        return vh[np.argmin(s),:]
+        u, s, vh = svd(A)
+        return vh[:,np.argmin(s)]
 
     @staticmethod
     def compute_forward_homography_slow(
