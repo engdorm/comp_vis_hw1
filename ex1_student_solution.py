@@ -46,7 +46,7 @@ class Solution:
                         u_i*u_t_i, u_i*u_t_i, u_i])
         A = np.array(mat)
         u, s, vh = svd(A)
-        return vh[:,np.argmin(s)]
+        return vh[np.argmin(s)]
 
     @staticmethod
     def compute_forward_homography_slow(
@@ -72,12 +72,14 @@ class Solution:
             The forward homography of the source image to its destination.
         """
         # return new_image
+        max_x, max_y, _ = dst_image_shape
         new_img = np.zeros(dst_image_shape)
         for i in range(src_image.shape[0]):
             for j in range(src_image.shape[1]):
                 new_pos = homography @ np.array([i, j, 1]).T # new_pos = H *X'
                 dst_x, dst_y = int(new_pos[0]/new_pos[2]), int(new_pos[1]/new_pos[2])
-                new_img[dst_x, dst_y] =  src_image[i,j]
+                if 0 <= dst_x <= max_x and 0 <= dst_y <= max_y:
+                    new_img[dst_x, dst_y] =  src_image[i,j]
         return new_img
 
 
