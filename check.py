@@ -1,6 +1,5 @@
 import numpy as np
 import PIL
-import cv2
 import matplotlib.pyplot as plt
 import scipy.io
 from numpy.linalg import svd
@@ -68,14 +67,13 @@ def compute_homography_naive(match_p_src: np.ndarray,
     """INSERT YOUR CODE HERE"""
     A = []
     for i in range(match_p_src.shape[1]):
-        u_src, v_src = match_p_src[0, i], match_p_src[1, i]
-        u_tag, v_tag = match_p_dst[0, i], match_p_dst[1, i]
-        A.append([u_src, v_src, 1.0, 0.0, 0.0, 0.0, -u_tag*u_src, -u_tag*v_src, -u_tag])
-        A.append([0.0, 0.0, 0.0, u_src, v_src, 1.0, -v_tag * u_src, -v_tag * v_src, -v_tag])
+        u_src, v_src = np.float64(match_p_src[0, i]), np.float64(match_p_src[1, i])
+        u_tag, v_tag = np.float64(match_p_dst[0, i]), np.float64(match_p_dst[1, i])
+        A.append([u_src, v_src, 1, 0, 0, 0, -u_tag*u_src, -u_tag*v_src, -u_tag])
+        A.append([0, 0, 0, u_src, v_src, 1, -v_tag * u_src, -v_tag * v_src, -v_tag])
     A = np.asarray(A, dtype=np.float64)
     u, s, vh = svd(A)
     return vh[-1].reshape(3, 3)
 
-
-v = compute_homography_naive(match_p_src, match_p_dst)
-print(f"H = {v}")
+H = compute_homography_naive(match_p_src, match_p_dst)
+print(f"H = {H}")
