@@ -32,21 +32,15 @@ class Solution:
             Homography from source to destination, 3x3 numpy array.
         """
         # return homography
-        mat = []
+        A = []
         for i in range(match_p_src.shape[1]):
-            u_i = match_p_src[0,i]
-            v_i = match_p_src[1, i]
-            u_t_i = match_p_dst[0,i]
-            v_t_i = match_p_dst[1, i]
-            mat.append([-u_t_i, -v_t_i, -1,
-                        0, 0, 0,
-                        u_i*u_t_i, u_i*u_t_i, u_i])
-            mat.append([0, 0, 0,
-                        -match_p_dst, -match_p_dst, -1,
-                        u_i*u_t_i, u_i*u_t_i, u_i])
-        A = np.array(mat)
+            u_src, v_src = np.float64(match_p_src[0, i]), np.float64(match_p_src[1, i])
+            u_tag, v_tag = np.float64(match_p_dst[0, i]), np.float64(match_p_dst[1, i])
+            A.append([u_src, v_src, 1, 0, 0, 0, -u_tag*u_src, -u_tag*v_src, -u_tag])
+            A.append([0, 0, 0, u_src, v_src, 1, -v_tag * u_src, -v_tag * v_src, -v_tag])
+        A = np.array(A)
         u, s, vh = svd(A)
-        return vh[np.argmin(s)]
+        return vh[np.argmin(s)].reshape(3,3)
 
     @staticmethod
     def compute_forward_homography_slow(
@@ -73,13 +67,13 @@ class Solution:
         """
         # return new_image
         max_x, max_y, _ = dst_image_shape
-        new_img = np.zeros(dst_image_shape)
-        for i in range(src_image.shape[0]):
-            for j in range(src_image.shape[1]):
-                new_pos = homography @ np.array([i, j, 1]).T # new_pos = H *X'
+        new_img = np.zeros(dst_image_shape, dtype=np.uint8)
+        for y in range(src_image.shape[0]):
+            for x in range(src_image.shape[1]):
+                new_pos = homography @ np.array([x, y, 1]).T # new_pos = H *X'
                 dst_x, dst_y = int(new_pos[0]/new_pos[2]), int(new_pos[1]/new_pos[2])
                 if 0 <= dst_x <= max_x and 0 <= dst_y <= max_y:
-                    new_img[dst_x, dst_y] =  src_image[i,j]
+                    new_img[dst_y, dst_x] =  src_image[y,x]
         return new_img
 
 
@@ -111,8 +105,23 @@ class Solution:
             The forward homography of the source image to its destination.
         """
         # return new_image
-        """INSERT YOUR CODE HERE"""
-        pass
+        new_image = np.zeros(shape=dst_image_shape, dtype=np.uint8)
+        hw_length = src_image.shape[0] * src_image.shape[1]
+        x = np.linspace(0, src_image.shape[0]-1, src_image.shape[0]).astype(int)
+        y = np.linspace(0, src_image.shape[1]-1, src_image.shape[1]).astype(int)
+        yy, xx = np.meshgrid(y, x)
+        yy = yy.reshape((1, hw_length))
+        xx = xx.reshape((1, hw_length))
+        ones = np.ones(shape=(1, hw_length))
+        X = np.concatenate((yy, xx, ones), axis=0)
+        Y = homography @ X
+        Y /= Y[-1]
+        Y_norm = Y[0:2]
+        Y_norm = Y_norm.round().astype(int)
+
+        mask = (Y_norm[1] >= 0) & (Y_norm[1] < dst_image_shape[0]) & (Y_norm[0] >= 0) & (Y_norm[0] < dst_image_shape[1])
+        new_image[Y_norm[1, mask], Y_norm[0, mask]] = src_image[xx[0, mask], yy[0, mask]]
+        return new_image
 
     @staticmethod
     def test_homography(homography: np.ndarray,
