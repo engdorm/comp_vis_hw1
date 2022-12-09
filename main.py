@@ -107,12 +107,12 @@ def main():
 
     # Test naive homography
     tt = time.time()
-    # fit_percent, dist_mse = solution.test_homography(naive_homography,
-                                                     # match_p_src,
-                                                     # match_p_dst,
-                                                     # max_err)
-    # print('Naive Homography Test {:5.4f} sec'.format(toc(tt)))
-    # print([fit_percent, dist_mse])
+    fit_percent, dist_mse = solution.test_homography(naive_homography,
+                                                     match_p_src,
+                                                     match_p_dst,
+                                                     max_err)
+    print('Naive Homography Test {:5.4f} sec'.format(toc(tt)))
+    print([fit_percent, dist_mse])
 
     # # Compute RANSAC homography
     # tt = tic()

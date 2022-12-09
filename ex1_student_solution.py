@@ -157,11 +157,11 @@ class Solution:
         # Now we're going back to regular coordinate
         dst_p_est = dst_p_est[0:2]
         # Calc error dist
-        dist_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
-        dist_arr = np.sqrt(dist_arr)
+        err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
+        dist_arr = np.sqrt(err_arr)
         fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
         inliers_indx = np.where(dist_arr < max_err)
-        mse_calc = np.sum(dist_arr[inliers_indx]) / len(inliers_indx)
+        mse_calc = np.mean(err_arr[inliers_indx])
         return fit_percent, mse_calc
 
     @staticmethod

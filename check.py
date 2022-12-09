@@ -177,11 +177,11 @@ def test_homography(homography: np.ndarray,
     # Now we're going back to regular coordinate
     dst_p_est = dst_p_est[0:2]
     # Calc error dist
-    dist_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
-    dist_arr = np.sqrt(dist_arr)
+    err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
+    dist_arr = np.sqrt(err_arr)
     fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
     inliers_indx = np.where(dist_arr < max_err)
-    mse_calc = np.sum(dist_arr[inliers_indx] ** 2) / len(inliers_indx)
+    mse_calc = np.mean(err_arr[inliers_indx])
     return fit_percent, mse_calc
 
 
@@ -193,10 +193,10 @@ src_img = plt.imread("src.jpg")
 dst_img = plt.imread("dst.jpg")
 
 # Second part let's read point matching
-matches = scipy.io.loadmat('matches.mat')
+matches = scipy.io.loadmat('matches_perfect.mat')
 match_p_src = matches['match_p_src']
 match_p_dst = matches['match_p_dst']
 
 H = compute_homography_naive(match_p_src, match_p_dst)
-fit_percent, mse_calc = test_homography(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=30)
+fit_percent, mse_calc = test_homography(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=3)
 print(f"fit precent = {fit_percent}    mse = {mse_calc}")
