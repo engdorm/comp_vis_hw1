@@ -160,6 +160,8 @@ class Solution:
         err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
         dist_arr = np.sqrt(err_arr)
         fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
+        if fit_percent == 0.0:
+            return fit_percent, 10**9
         inliers_indx = np.where(dist_arr < max_err)
         mse_calc = np.mean(err_arr[inliers_indx])
         return fit_percent, mse_calc

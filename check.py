@@ -223,6 +223,12 @@ def meet_the_model_points(homography: np.ndarray,
     return match_p_src[:, inliers_indx[0]], match_p_dst[:, inliers_indx[0]]
 
 
+
+def meet_the_model_points(homography, match_p_src, match_p_dst, max_err):
+    pass
+
+
+
 # First Part Let's read and show Images
 src_img = plt.imread("src.jpg")
 dst_img = plt.imread("dst.jpg")
