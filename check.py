@@ -185,7 +185,42 @@ def test_homography(homography: np.ndarray,
     return fit_percent, mse_calc
 
 
+def meet_the_model_points(homography: np.ndarray,
+                          match_p_src: np.ndarray,
+                          match_p_dst: np.ndarray,
+                          max_err: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Return which matching points meet the homography.
 
+    Loop through the matching points, and return the matching points from
+    both images that are inliers for the given homography.
+
+    Args:
+        homography: 3x3 Projective Homography matrix.
+        match_p_src: 2xN points from the source image.
+        match_p_dst: 2xN points from the destination image.
+        max_err: A scalar that represents the maximum distance (in
+        pixels) between the mapped src point to its corresponding dst
+        point, in order to be considered as valid inlier.
+    Returns:
+        A tuple containing two numpy nd-arrays, containing the matching
+        points which meet the model (the homography). The first entry in
+        the tuple is the matching points from the source image. That is a
+        nd-array of size 2xD (D=the number of points which meet the model).
+        The second entry is the matching points form the destination
+        image (shape 2xD; D as above).
+    """
+    # return mp_src_meets_model, mp_dst_meets_model
+    one_arr = np.ones((1, match_p_dst.shape[1]))
+    X = np.concatenate((match_p_src, one_arr), axis=0)
+    dst_p_est = homography @ X
+    dst_p_est /= dst_p_est[-1]
+    # Now we're going back to regular coordinate
+    dst_p_est = dst_p_est[0:2]
+    # Calc error dist
+    err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
+    dist_arr = np.sqrt(err_arr)
+    inliers_indx = np.where(dist_arr < max_err)
+    return match_p_src[:, inliers_indx[0]], match_p_dst[:, inliers_indx[0]]
 
 
 # First Part Let's read and show Images
@@ -199,4 +234,6 @@ match_p_dst = matches['match_p_dst']
 
 H = compute_homography_naive(match_p_src, match_p_dst)
 fit_percent, mse_calc = test_homography(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=3)
+match_p_srcl, match_p_dstl = meet_the_model_points(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=3)
 print(f"fit precent = {fit_percent}    mse = {mse_calc}")
+print(f"match_p_src, match_p_ds = {match_p_srcl, match_p_dstl}")

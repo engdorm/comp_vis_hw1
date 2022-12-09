@@ -199,9 +199,8 @@ class Solution:
         # Calc error dist
         err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
         dist_arr = np.sqrt(err_arr)
-        fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
         inliers_indx = np.where(dist_arr < max_err)
-        return match_p_src[inliers_indx], match_p_dst[inliers_indx] 
+        return match_p_src[:, inliers_indx[0]], match_p_dst[:, inliers_indx[0]]
 
     def compute_homography(self,
                            match_p_src: np.ndarray,
