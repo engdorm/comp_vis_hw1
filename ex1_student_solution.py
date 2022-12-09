@@ -222,21 +222,34 @@ class Solution:
         Returns:
             homography: Projective transformation matrix from src to dst.
         """
-        # # use class notations:
-        # w = inliers_percent
-        # # t = max_err
-        # # p = parameter determining the probability of the algorithm to
-        # # succeed
-        # p = 0.99
-        # # the minimal probability of points which meets with the model
-        # d = 0.5
-        # # number of points sufficient to compute the model
-        # n = 4
-        # # number of RANSAC iterations (+1 to avoid the case where w=1)
-        # k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
-        # return homography
+        # use class notations:
+        w = inliers_percent
+        # t = max_err
+        # p = parameter determining the probability of the algorithm to
+        # succeed
+        p = 0.99
+        # the minimal probability of points which meets with the model
+        d = 0.5
+        # number of points sufficient to compute the model
+        n = 4
+        # number of RANSAC iterations (+1 to avoid the case where w=1)
+        k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
         """INSERT YOUR CODE HERE"""
-        pass
+        best_err = None
+        best_homography = None
+        for _ in range(k):
+            rand_points = np.random.randint(low=0, high=match_p_dst.shape[1], size=[4])
+            homography = Solution.compute_homography_naive(match_p_src[:, rand_points], match_p_dst[:, rand_points])
+            in_src, in_dst = Solution.meet_the_model_points(homography, match_p_src, match_p_dst, max_err)
+            if (in_src.shape[1] / match_p_src.shape[1]) > d:
+                homography_fixed = Solution.compute_homography_naive(in_src, in_dst)
+                _, err_tmp = Solution.test_homography(homography_fixed, match_p_src, match_p_dst, max_err)
+                if best_err is None or err_tmp < best_err:
+                    best_err = err_tmp
+                    best_homography = homography_fixed
+
+        return best_homography
+
 
     @staticmethod
     def compute_backward_mapping(

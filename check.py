@@ -138,12 +138,23 @@ def compute_forward_homography_fast(
     """
     # return new_image
     """INSERT YOUR CODE HERE"""
-    img_out = np.zeros(dst_image_shape, dtype=np.uint8)
-    x = np.linspace(0, src_image.shape[1], src_image.shape[1] - 1)
-    y = np.linspace(0, src_image.shape[0], src_image.shape[0] - 1)
-    yy, xx = np.meshgrid(x, y)
-    print("Hello")
+    new_image = np.zeros(shape=dst_image_shape, dtype=np.uint8)
+    hw_length = src_image.shape[0] * src_image.shape[1]
+    x = np.linspace(0, src_image.shape[0] - 1, src_image.shape[0]).astype(int)
+    y = np.linspace(0, src_image.shape[1] - 1, src_image.shape[1]).astype(int)
+    yy, xx = np.meshgrid(y, x)
+    yy = yy.reshape((1, hw_length))
+    xx = xx.reshape((1, hw_length))
+    ones = np.ones(shape=(1, hw_length))
+    X = np.concatenate((yy, xx, ones), axis=0)
+    Y = homography @ X
+    Y /= Y[-1]
+    Y_norm = Y[0:2]
+    Y_norm = Y_norm.round().astype(int)
 
+    mask = (Y_norm[1] >= 0) & (Y_norm[1] < dst_image_shape[0]) & (Y_norm[0] >= 0) & (Y_norm[0] < dst_image_shape[1])
+    new_image[Y_norm[1, mask], Y_norm[0, mask]] = src_image[xx[0, mask], yy[0, mask]]
+    return new_image
 def test_homography(homography: np.ndarray,
                     match_p_src: np.ndarray,
                     match_p_dst: np.ndarray,
@@ -172,7 +183,7 @@ def test_homography(homography: np.ndarray,
     """INSERT YOUR CODE HERE"""
     one_arr = np.ones((1, match_p_dst.shape[1]))
     X = np.concatenate((match_p_src, one_arr), axis=0)
-    dst_p_est = H  @ X
+    dst_p_est = homography  @ X
     dst_p_est /= dst_p_est[-1]
     # Now we're going back to regular coordinate
     dst_p_est = dst_p_est[0:2]
@@ -180,6 +191,8 @@ def test_homography(homography: np.ndarray,
     err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
     dist_arr = np.sqrt(err_arr)
     fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
+    if fit_percent == 0.0:
+        return fit_percent, 10 ** 9
     inliers_indx = np.where(dist_arr < max_err)
     mse_calc = np.mean(err_arr[inliers_indx])
     return fit_percent, mse_calc
@@ -224,8 +237,49 @@ def meet_the_model_points(homography: np.ndarray,
 
 
 
-def meet_the_model_points(homography, match_p_src, match_p_dst, max_err):
-    pass
+def compute_homography(
+                       match_p_src: np.ndarray,
+                       match_p_dst: np.ndarray,
+                       inliers_percent: float,
+                       max_err: float) -> np.ndarray:
+    """Compute homography coefficients using RANSAC to overcome outliers.
+    Args:
+        match_p_src: 2xN points from the source image.
+        match_p_dst: 2xN points from the destination image.
+        inliers_percent: The expected probability (between 0 and 1) of
+        correct match points from the entire list of match points.
+        max_err: A scalar that represents the maximum distance (in
+        pixels) between the mapped src point to its corresponding dst
+        point, in order to be considered as valid inlier.
+    Returns:
+        homography: Projective transformation matrix from src to dst.
+    """
+    # use class notations:
+    w = inliers_percent
+    # t = max_err
+    # p = parameter determining the probability of the algorithm to
+    # succeed
+    p = 0.99
+    # the minimal probability of points which meets with the model
+    d = 0.5
+    # number of points sufficient to compute the model
+    n = 4
+    # number of RANSAC iterations (+1 to avoid the case where w=1)
+    k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
+    best_err = None
+    best_homography = None
+    for _ in range(k):
+        rand_points = np.random.randint(low=0, high=match_p_dst.shape[1], size=[4])
+        homography = compute_homography_naive(match_p_src[:, rand_points], match_p_dst[:, rand_points])
+        in_src, in_dst = meet_the_model_points(homography, match_p_src, match_p_dst, max_err)
+        if (in_src.shape[1] / match_p_src.shape[1]) > d:
+            homography_fixed = compute_homography_naive(in_src, in_dst)
+            _, err_tmp = test_homography(homography_fixed, match_p_src, match_p_dst, max_err)
+            if best_err is None or err_tmp < best_err:
+                best_err = err_tmp
+                best_homography = homography_fixed
+
+    return best_homography
 
 
 
@@ -234,12 +288,21 @@ src_img = plt.imread("src.jpg")
 dst_img = plt.imread("dst.jpg")
 
 # Second part let's read point matching
-matches = scipy.io.loadmat('matches_perfect.mat')
+matches = scipy.io.loadmat('matches.mat')
 match_p_src = matches['match_p_src']
 match_p_dst = matches['match_p_dst']
 
-H = compute_homography_naive(match_p_src, match_p_dst)
-fit_percent, mse_calc = test_homography(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=3)
-match_p_srcl, match_p_dstl = meet_the_model_points(homography=H, match_p_src=match_p_src, match_p_dst=match_p_dst, max_err=3)
-print(f"fit precent = {fit_percent}    mse = {mse_calc}")
-print(f"match_p_src, match_p_ds = {match_p_srcl, match_p_dstl}")
+ransac_homography = compute_homography(match_p_src, match_p_dst, inliers_percent=0.8, max_err=25)
+wrong_homography = compute_homography_naive(match_p_src, match_p_dst)
+
+transformed_image_wrong = compute_forward_homography_fast(homography=wrong_homography, src_image=src_img ,dst_image_shape=dst_img.shape)
+transformed_image_ransac = compute_forward_homography_fast(homography=ransac_homography, src_image=src_img ,dst_image_shape=dst_img.shape)
+
+
+plt.imshow(transformed_image_wrong)
+plt.title('Forward Panorama imperfect matches')
+plt.show()
+
+plt.imshow(transformed_image_ransac)
+plt.title('Forward Panorama imperfect matches after RANSAC')
+plt.show()
