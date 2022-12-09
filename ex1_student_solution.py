@@ -190,8 +190,18 @@ class Solution:
             image (shape 2xD; D as above).
         """
         # return mp_src_meets_model, mp_dst_meets_model
-        """INSERT YOUR CODE HERE"""
-        pass
+        one_arr = np.ones((1, match_p_dst.shape[1]))
+        X = np.concatenate((match_p_src, one_arr), axis=0)
+        dst_p_est = homography @ X
+        dst_p_est /= dst_p_est[-1]
+        # Now we're going back to regular coordinate
+        dst_p_est = dst_p_est[0:2]
+        # Calc error dist
+        err_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
+        dist_arr = np.sqrt(err_arr)
+        fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
+        inliers_indx = np.where(dist_arr < max_err)
+        return match_p_src[inliers_indx], match_p_dst[inliers_indx] 
 
     def compute_homography(self,
                            match_p_src: np.ndarray,
