@@ -73,7 +73,7 @@ class Solution:
                 new_pos = homography @ np.array([x, y, 1]).T # new_pos = H *X'
                 dst_x, dst_y = int(new_pos[0]/new_pos[2]), int(new_pos[1]/new_pos[2])
                 if 0 <= dst_x <= max_x and 0 <= dst_y <= max_y:
-                    new_img[dst_y, dst_x] =  src_image[y,x]
+                    new_img[dst_y, dst_x] = src_image[y,x]
         return new_img
 
 
@@ -150,7 +150,19 @@ class Solution:
         """
         # return fit_percent, dist_mse
         """INSERT YOUR CODE HERE"""
-        pass
+        one_arr = np.ones((1, match_p_dst.shape[1]))
+        X = np.concatenate((match_p_src, one_arr), axis=0)
+        dst_p_est = homography @ X
+        dst_p_est /= dst_p_est[-1]
+        # Now we're going back to regular coordinate
+        dst_p_est = dst_p_est[0:2]
+        # Calc error dist
+        dist_arr = np.sum((dst_p_est - match_p_dst) ** 2, axis=0)
+        dist_arr = np.sqrt(dist_arr)
+        fit_percent = np.sum(dist_arr < max_err) / len(dist_arr)
+        inliers_indx = np.where(dist_arr < max_err)
+        mse_calc = np.sum(dist_arr[inliers_indx]) / len(inliers_indx)
+        return fit_percent, mse_calc
 
     @staticmethod
     def meet_the_model_points(homography: np.ndarray,
