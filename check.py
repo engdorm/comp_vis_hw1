@@ -5,6 +5,7 @@ import PIL
 import matplotlib.pyplot as plt
 import scipy.io
 from numpy.linalg import svd
+np.random.seed(1)
 
 
 # # First Part Let's read and show Images

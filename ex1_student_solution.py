@@ -8,7 +8,7 @@ from collections import namedtuple
 
 from numpy.linalg import svd
 from scipy.interpolate import griddata
-
+np.random.seed(1)
 
 PadStruct = namedtuple('PadStruct',
                        ['pad_up', 'pad_down', 'pad_right', 'pad_left'])
@@ -38,9 +38,9 @@ class Solution:
             u_tag, v_tag = np.float64(match_p_dst[0, i]), np.float64(match_p_dst[1, i])
             A.append([u_src, v_src, 1, 0, 0, 0, -u_tag*u_src, -u_tag*v_src, -u_tag])
             A.append([0, 0, 0, u_src, v_src, 1, -v_tag * u_src, -v_tag * v_src, -v_tag])
-        A = np.array(A)
+        A = np.asarray(A, dtype=np.float64)
         u, s, vh = svd(A)
-        return vh[np.argmin(s)].reshape(3,3)
+        return vh[-1].reshape(3, 3)
 
     @staticmethod
     def compute_forward_homography_slow(
