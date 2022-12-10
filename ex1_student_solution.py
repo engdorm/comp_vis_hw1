@@ -8,20 +8,20 @@ from collections import namedtuple
 
 from numpy.linalg import svd
 from scipy.interpolate import griddata
+
 np.random.seed(1)
 
-PadStruct = namedtuple('PadStruct',
-                       ['pad_up', 'pad_down', 'pad_right', 'pad_left'])
+PadStruct = namedtuple("PadStruct", ["pad_up", "pad_down", "pad_right", "pad_left"])
 
 
 class Solution:
     """Implement Projective Homography and Panorama Solution."""
+
     def __init__(self):
         pass
 
     @staticmethod
-    def compute_homography_naive(match_p_src: np.ndarray,
-                                 match_p_dst: np.ndarray) -> np.ndarray:
+    def compute_homography_naive(match_p_src: np.ndarray, match_p_dst: np.ndarray) -> np.ndarray:
         """Compute a Homography in the Naive approach, using SVD decomposition.
 
         Args:
@@ -39,14 +39,15 @@ class Solution:
             A.append([u_src, v_src, 1, 0, 0, 0, -u_tag * u_src, -u_tag * v_src, -u_tag])
             A.append([0, 0, 0, u_src, v_src, 1, -v_tag * u_src, -v_tag * v_src, -v_tag])
         A = np.asarray(A, dtype=np.float64)
-        u, s, vh = svd(A)
+        _, _, vh = svd(A)
         return vh[-1].reshape(3, 3)
 
     @staticmethod
     def compute_forward_homography_slow(
-            homography: np.ndarray,
-            src_image: np.ndarray,
-            dst_image_shape: tuple = (1088, 1452, 3)) -> np.ndarray:
+        homography: np.ndarray,
+        src_image: np.ndarray,
+        dst_image_shape: tuple = (1088, 1452, 3),
+    ) -> np.ndarray:
         """Compute a Forward-Homography in the Naive approach, using loops.
 
         Iterate over the rows and columns of the source image, and compute
@@ -70,18 +71,18 @@ class Solution:
         new_img = np.zeros(dst_image_shape, dtype=np.uint8)
         for y in range(src_image.shape[0]):
             for x in range(src_image.shape[1]):
-                new_pos = homography @ np.array([x, y, 1]).T # new_pos = H *X'
-                dst_x, dst_y = int(new_pos[0]/new_pos[2]), int(new_pos[1]/new_pos[2])
+                new_pos = homography @ np.array([x, y, 1]).T  # new_pos = H *X'
+                dst_x, dst_y = int(new_pos[0] / new_pos[2]), int(new_pos[1] / new_pos[2])
                 if 0 <= dst_x <= max_x and 0 <= dst_y <= max_y:
-                    new_img[dst_y, dst_x] = src_image[y,x]
+                    new_img[dst_y, dst_x] = src_image[y, x]
         return new_img
-
 
     @staticmethod
     def compute_forward_homography_fast(
-            homography: np.ndarray,
-            src_image: np.ndarray,
-            dst_image_shape: tuple = (1088, 1452, 3)) -> np.ndarray:
+        homography: np.ndarray,
+        src_image: np.ndarray,
+        dst_image_shape: tuple = (1088, 1452, 3),
+    ) -> np.ndarray:
         """Compute a Forward-Homography in a fast approach, WITHOUT loops.
 
         (1) Create a meshgrid of columns and rows.
@@ -107,8 +108,8 @@ class Solution:
         # return new_image
         new_image = np.zeros(shape=dst_image_shape, dtype=np.uint8)
         hw_length = src_image.shape[0] * src_image.shape[1]
-        x = np.linspace(0, src_image.shape[0]-1, src_image.shape[0]).astype(int)
-        y = np.linspace(0, src_image.shape[1]-1, src_image.shape[1]).astype(int)
+        x = np.linspace(0, src_image.shape[0] - 1, src_image.shape[0]).astype(int)
+        y = np.linspace(0, src_image.shape[1] - 1, src_image.shape[1]).astype(int)
         yy, xx = np.meshgrid(y, x)
         yy = yy.reshape((1, hw_length))
         xx = xx.reshape((1, hw_length))
@@ -119,15 +120,22 @@ class Solution:
         Y_norm = Y[0:2]
         Y_norm = Y_norm.round().astype(int)
 
-        mask = (Y_norm[1] >= 0) & (Y_norm[1] < dst_image_shape[0]) & (Y_norm[0] >= 0) & (Y_norm[0] < dst_image_shape[1])
+        mask = (
+            (Y_norm[1] >= 0)
+            & (Y_norm[1] < dst_image_shape[0])
+            & (Y_norm[0] >= 0)
+            & (Y_norm[0] < dst_image_shape[1])
+        )
         new_image[Y_norm[1, mask], Y_norm[0, mask]] = src_image[xx[0, mask], yy[0, mask]]
         return new_image
 
     @staticmethod
-    def test_homography(homography: np.ndarray,
-                        match_p_src: np.ndarray,
-                        match_p_dst: np.ndarray,
-                        max_err: float) -> Tuple[float, float]:
+    def test_homography(
+        homography: np.ndarray,
+        match_p_src: np.ndarray,
+        match_p_dst: np.ndarray,
+        max_err: float,
+    ) -> Tuple[float, float]:
         """Calculate the quality of the projective transformation model.
 
         Args:
@@ -167,12 +175,13 @@ class Solution:
         print(f"test src points : {match_p_dst[:, inliers_indx]}")
         return fit_percent, mse_calc
 
-
     @staticmethod
-    def meet_the_model_points(homography: np.ndarray,
-                              match_p_src: np.ndarray,
-                              match_p_dst: np.ndarray,
-                              max_err: float) -> Tuple[np.ndarray, np.ndarray]:
+    def meet_the_model_points(
+        homography: np.ndarray,
+        match_p_src: np.ndarray,
+        match_p_dst: np.ndarray,
+        max_err: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return which matching points meet the homography.
 
         Loop through the matching points, and return the matching points from
@@ -206,11 +215,13 @@ class Solution:
         inliers_indx = np.where(dist_arr < max_err)
         return match_p_src[:, inliers_indx[0]], match_p_dst[:, inliers_indx[0]]
 
-    def compute_homography(self,
-                           match_p_src: np.ndarray,
-                           match_p_dst: np.ndarray,
-                           inliers_percent: float,
-                           max_err: float) -> np.ndarray:
+    def compute_homography(
+        self,
+        match_p_src: np.ndarray,
+        match_p_dst: np.ndarray,
+        inliers_percent: float,
+        max_err: float,
+    ) -> np.ndarray:
         """Compute homography coefficients using RANSAC to overcome outliers.
 
         Args:
@@ -235,16 +246,22 @@ class Solution:
         # number of points sufficient to compute the model
         n = 4
         # number of RANSAC iterations (+1 to avoid the case where w=1)
-        k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
-        best_err = 10 ** 9
+        k = int(np.ceil(np.log(1 - p) / np.log(1 - w**n))) + 1
+        best_err = 10**9
         best_homography = None
         for _ in range(k):
             rand_points = np.random.randint(low=0, high=match_p_dst.shape[1], size=[4])
-            homography = Solution.compute_homography_naive(match_p_src[:, rand_points], match_p_dst[:, rand_points])
-            in_src, in_dst = Solution.meet_the_model_points(homography, match_p_src, match_p_dst, max_err)
+            homography = Solution.compute_homography_naive(
+                match_p_src[:, rand_points], match_p_dst[:, rand_points]
+            )
+            in_src, in_dst = Solution.meet_the_model_points(
+                homography, match_p_src, match_p_dst, max_err
+            )
             if (in_src.shape[1] / match_p_dst.shape[1]) > d:
                 homography_fixed = Solution.compute_homography_naive(in_src, in_dst)
-                _, err_tmp = Solution.test_homography(homography_fixed, match_p_src, match_p_dst, max_err)
+                _, err_tmp = Solution.test_homography(
+                    homography_fixed, match_p_src, match_p_dst, max_err
+                )
                 if err_tmp < best_err:
                     best_err = err_tmp
                     best_homography = homography_fixed
@@ -253,9 +270,10 @@ class Solution:
 
     @staticmethod
     def compute_backward_mapping(
-            backward_projective_homography: np.ndarray,
-            src_image: np.ndarray,
-            dst_image_shape: tuple = (1088, 1452, 3)) -> np.ndarray:
+        backward_projective_homography: np.ndarray,
+        src_image: np.ndarray,
+        dst_image_shape: tuple = (1088, 1452, 3),
+    ) -> np.ndarray:
         """Compute backward mapping.
 
         (1) Create a mesh-grid of columns and rows of the destination image.
@@ -292,18 +310,28 @@ class Solution:
         Y_norm = Y_src[0:2]
         backward_warp = np.zeros(shape=dst_image_shape, dtype=np.uint8)
         Y_rounded = np.round(Y_norm).astype(int)
-        mask = (Y_rounded[1] >= 0) & (Y_rounded[1] < (src_image.shape[0])) & (Y_rounded[0] >= 0) & (
-                Y_rounded[0] < (src_image.shape[1]))
-        height, width, grid_h, grid_w = Y_rounded[1, mask], Y_rounded[0, mask], Y_norm[1, mask], Y_norm[0, mask]
-        pixels = griddata((height, width), src_image[height, width], (grid_h, grid_w), method='cubic')
+        mask = (
+            (Y_rounded[1] >= 0)
+            & (Y_rounded[1] < (src_image.shape[0]))
+            & (Y_rounded[0] >= 0)
+            & (Y_rounded[0] < (src_image.shape[1]))
+        )
+        height, width, grid_h, grid_w = (
+            Y_rounded[1, mask],
+            Y_rounded[0, mask],
+            Y_norm[1, mask],
+            Y_norm[0, mask],
+        )
+        pixels = griddata(
+            (height, width), src_image[height, width], (grid_h, grid_w), method="cubic"
+        )
         backward_warp[xx[0, mask], yy[0, mask]] = pixels
         return backward_warp
 
     @staticmethod
-    def find_panorama_shape(src_image: np.ndarray,
-                            dst_image: np.ndarray,
-                            homography: np.ndarray
-                            ) -> Tuple[int, int, PadStruct]:
+    def find_panorama_shape(
+        src_image: np.ndarray, dst_image: np.ndarray, homography: np.ndarray
+    ) -> Tuple[int, int, PadStruct]:
         """Compute the panorama shape and the padding in each axes.
 
         Args:
@@ -333,11 +361,10 @@ class Solution:
         src_rows_num, src_cols_num, _ = src_image.shape
         dst_rows_num, dst_cols_num, _ = dst_image.shape
         src_edges = {}
-        src_edges['upper left corner'] = np.array([1, 1, 1])
-        src_edges['upper right corner'] = np.array([src_cols_num, 1, 1])
-        src_edges['lower left corner'] = np.array([1, src_rows_num, 1])
-        src_edges['lower right corner'] = \
-            np.array([src_cols_num, src_rows_num, 1])
+        src_edges["upper left corner"] = np.array([1, 1, 1])
+        src_edges["upper right corner"] = np.array([src_cols_num, 1, 1])
+        src_edges["lower left corner"] = np.array([1, src_rows_num, 1])
+        src_edges["lower right corner"] = np.array([src_cols_num, src_rows_num, 1])
         transformed_edges = {}
         for corner_name, corner_location in src_edges.items():
             transformed_edges[corner_name] = homography @ corner_location
@@ -349,27 +376,27 @@ class Solution:
                 pad_up = max([pad_up, abs(corner_location[1])])
             if corner_location[0] > dst_cols_num:
                 # pad right
-                pad_right = max([pad_right,
-                                 corner_location[0] - dst_cols_num])
+                pad_right = max([pad_right, corner_location[0] - dst_cols_num])
             if corner_location[0] < 1:
                 # pad left
                 pad_left = max([pad_left, abs(corner_location[0])])
             if corner_location[1] > dst_rows_num:
                 # pad down
-                pad_down = max([pad_down,
-                                corner_location[1] - dst_rows_num])
+                pad_down = max([pad_down, corner_location[1] - dst_rows_num])
         panorama_cols_num = int(dst_cols_num + pad_right + pad_left)
         panorama_rows_num = int(dst_rows_num + pad_up + pad_down)
-        pad_struct = PadStruct(pad_up=int(pad_up),
-                               pad_down=int(pad_down),
-                               pad_left=int(pad_left),
-                               pad_right=int(pad_right))
+        pad_struct = PadStruct(
+            pad_up=int(pad_up),
+            pad_down=int(pad_down),
+            pad_left=int(pad_left),
+            pad_right=int(pad_right),
+        )
         return panorama_rows_num, panorama_cols_num, pad_struct
 
     @staticmethod
-    def add_translation_to_backward_homography(backward_homography: np.ndarray,
-                                               pad_left: int,
-                                               pad_up: int) -> np.ndarray:
+    def add_translation_to_backward_homography(
+        backward_homography: np.ndarray, pad_left: int, pad_up: int
+    ) -> np.ndarray:
         """Create a new homography which takes translation into account.
 
         Args:
@@ -387,17 +414,20 @@ class Solution:
             A new homography which includes the backward homography and the
             translation.
         """
-        # return final_homography
-        """INSERT YOUR CODE HERE"""
-        pass
+        translation = np.matrix([[1, 0, -pad_left], [0, 1, -pad_up], [0, 0, 1]])
+        final_homography = backward_homography @ translation
+        final_homography /= np.linalg.norm(final_homography)
+        return np.asarray(final_homography).reshape(3, 3)
 
-    def panorama(self,
-                 src_image: np.ndarray,
-                 dst_image: np.ndarray,
-                 match_p_src: np.ndarray,
-                 match_p_dst: np.ndarray,
-                 inliers_percent: float,
-                 max_err: float) -> np.ndarray:
+    def panorama(
+        self,
+        src_image: np.ndarray,
+        dst_image: np.ndarray,
+        match_p_src: np.ndarray,
+        match_p_dst: np.ndarray,
+        inliers_percent: float,
+        max_err: float,
+    ) -> np.ndarray:
         """Produces a panorama image from two images, and two lists of
         matching points, that deal with outliers using RANSAC.
 
@@ -430,6 +460,26 @@ class Solution:
             A panorama image.
 
         """
-        # return np.clip(img_panorama, 0, 255).astype(np.uint8)
-        """INSERT YOUR CODE HERE"""
-        pass
+        forward_homography = self.compute_homography(
+            match_p_src, match_p_dst, inliers_percent, max_err
+        )
+        panorama_rows_num, panorama_cols_num, pad_struct = Solution.find_panorama_shape(
+            src_image, dst_image, forward_homography
+        )
+        backward_homography = np.linalg.inv(forward_homography)
+        backward_homography /= np.linalg.norm(backward_homography)
+        panorama_homography = Solution.add_translation_to_backward_homography(
+            backward_homography, pad_struct.pad_left, pad_struct.pad_up
+        )
+        img_panorama = np.zeros(shape=(panorama_rows_num, panorama_cols_num, 3), dtype=np.uint8)
+        backward_warped = Solution.compute_backward_mapping(
+            panorama_homography, src_image, img_panorama.shape
+        )
+        img_panorama[
+            pad_struct.pad_up: pad_struct.pad_up + dst_image.shape[0],
+            pad_struct.pad_left: pad_struct.pad_left + dst_image.shape[1],
+        ] = dst_image
+        black = [0, 0, 0]
+        mask = img_panorama[: backward_warped.shape[0], : backward_warped.shape[1]] == black
+        img_panorama[mask] = backward_warped[mask]
+        return np.clip(img_panorama, 0, 255).astype(np.uint8)

@@ -65,7 +65,7 @@ def main():
     plt.figure()
     forward_panorama_slow_plot = plt.imshow(transformed_image)
     plt.title('Forward Homography Slow implementation')
-    plt.show()
+    # plt.show()
 
     # Plot naive homography with forward mapping, fast implementation
     tt = time.time()
@@ -78,7 +78,7 @@ def main():
     plt.figure()
     forward_panorama_fast_plot = plt.imshow(transformed_image_fast)
     plt.title('Forward Homography Fast implementation')
-    plt.show()
+    # plt.show()
 
     # loading data with imperfect matches
     src_img, dst_img, match_p_src, match_p_dst = load_data(False)
@@ -103,7 +103,7 @@ def main():
     plt.figure()
     forward_panorama_imperfect_matches_plot = plt.imshow(transformed_image_fast)
     plt.title('Forward Panorama imperfect matches')
-    plt.show()
+    # plt.show()
 
     # Test naive homography
     tt = time.time()
@@ -132,22 +132,22 @@ def main():
     print('RANSAC Homography Test {:5.4f} sec'.format(toc(tt)))
     print([fit_percent, dist_mse])
 
-    # # Build panorama
-    # tt = tic()
-    # img_pan = solution.panorama(src_img,
-                                # dst_img,
-                                # match_p_src,
-                                # match_p_dst,
-                                # inliers_percent,
-                                # max_err)
-    # print('Panorama {:5.4f} sec'.format(toc(tt)))
+    # Build panorama
+    tt = tic()
+    img_pan = solution.panorama(src_img,
+                                dst_img,
+                                match_p_src,
+                                match_p_dst,
+                                inliers_percent,
+                                max_err)
+    print('Panorama {:5.4f} sec'.format(toc(tt)))
 
-    # # Course panorama
-    # plt.figure()
-    # course_panorama_plot = plt.imshow(img_pan)
-    # plt.title('Great Panorama')
-    # # plt.show()
+    # Course panorama
+    plt.figure()
+    course_panorama_plot = plt.imshow(img_pan)
+    plt.title('Great Panorama')
     # plt.show()
+    plt.show()
 
 
 def your_images_loader():
@@ -234,4 +234,4 @@ def your_images_main():
 
 if __name__ == '__main__':
     main()
-    #your_images_main()
+    your_images_main()
