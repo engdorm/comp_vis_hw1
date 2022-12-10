@@ -3,8 +3,9 @@ from typing import Tuple
 import numpy as np
 import PIL
 import matplotlib.pyplot as plt
-import scipy.io
+from scipy.interpolate import griddata
 from numpy.linalg import svd
+import scipy.io
 np.random.seed(1)
 
 

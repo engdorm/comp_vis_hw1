@@ -36,7 +36,7 @@ class Solution:
         for i in range(match_p_src.shape[1]):
             u_src, v_src = np.float64(match_p_src[0, i]), np.float64(match_p_src[1, i])
             u_tag, v_tag = np.float64(match_p_dst[0, i]), np.float64(match_p_dst[1, i])
-            A.append([u_src, v_src, 1, 0, 0, 0, -u_tag*u_src, -u_tag*v_src, -u_tag])
+            A.append([u_src, v_src, 1, 0, 0, 0, -u_tag * u_src, -u_tag * v_src, -u_tag])
             A.append([0, 0, 0, u_src, v_src, 1, -v_tag * u_src, -v_tag * v_src, -v_tag])
         A = np.asarray(A, dtype=np.float64)
         u, s, vh = svd(A)
@@ -251,7 +251,6 @@ class Solution:
 
         return best_homography
 
-
     @staticmethod
     def compute_backward_mapping(
             backward_projective_homography: np.ndarray,
@@ -280,7 +279,25 @@ class Solution:
 
         # return backward_warp
         """INSERT YOUR CODE HERE"""
-        pass
+        hw_length = dst_image_shape[0] * dst_image_shape[1]
+        x = np.linspace(0, dst_image_shape[0] - 1, dst_image_shape[0]).astype(int)
+        y = np.linspace(0, dst_image_shape[1] - 1, dst_image_shape[1]).astype(int)
+        xx, yy = np.meshgrid(x, y)
+        yy = yy.reshape((1, hw_length))
+        xx = xx.reshape((1, hw_length))
+        ones = np.ones(shape=(1, hw_length))
+        X_dst = np.concatenate((yy, xx, ones), axis=0)
+        Y_src = backward_projective_homography @ X_dst
+        Y_src /= Y_src[-1]
+        Y_norm = Y_src[0:2]
+        backward_warp = np.zeros(shape=dst_image_shape, dtype=np.uint8)
+        Y_rounded = np.round(Y_norm).astype(int)
+        mask = (Y_rounded[1] >= 0) & (Y_rounded[1] < (src_image.shape[0])) & (Y_rounded[0] >= 0) & (
+                Y_rounded[0] < (src_image.shape[1]))
+        height, width, grid_h, grid_w = Y_rounded[1, mask], Y_rounded[0, mask], Y_norm[1, mask], Y_norm[0, mask]
+        pixels = griddata((height, width), src_image[height, width], (grid_h, grid_w), method='cubic')
+        backward_warp[xx[0, mask], yy[0, mask]] = pixels
+        return backward_warp
 
     @staticmethod
     def find_panorama_shape(src_image: np.ndarray,
