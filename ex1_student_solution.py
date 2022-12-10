@@ -389,7 +389,11 @@ class Solution:
         """
         # return final_homography
         """INSERT YOUR CODE HERE"""
-        pass
+        T = np.matrix([[1, 0, -pad_left], [0, 1, -pad_up], [0, 0, 1]])
+        final_homography = backward_homography @ T
+        # Normalize Homography
+        final_homography /= np.linalg.norm(final_homography)
+        return final_homography
 
     def panorama(self,
                  src_image: np.ndarray,
@@ -432,4 +436,9 @@ class Solution:
         """
         # return np.clip(img_panorama, 0, 255).astype(np.uint8)
         """INSERT YOUR CODE HERE"""
-        pass
+        # Step1:
+        H_foward = Solution.compute_homography_naive(match_p_src, match_p_dst)
+        foward_homography = Solution.compute_forward_homography_fast(homography=H_foward, src_image=src_image, dst_image_shape=dst_image.shape)
+        panorama_rows_num, panorama_cols_num, pad_struct = Solution.find_panorama_shape(src_image=src_image, dst_image=dst_image, homography=foward_homography)
+        # Step2:
+
