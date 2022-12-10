@@ -236,7 +236,7 @@ class Solution:
         n = 4
         # number of RANSAC iterations (+1 to avoid the case where w=1)
         k = int(np.ceil(np.log(1 - p) / np.log(1 - w ** n))) + 1
-        best_err = None
+        best_err = 10 ** 9
         best_homography = None
         for _ in range(k):
             rand_points = np.random.randint(low=0, high=match_p_dst.shape[1], size=[4])
@@ -245,7 +245,7 @@ class Solution:
             if (in_src.shape[1] / match_p_dst.shape[1]) > d:
                 homography_fixed = Solution.compute_homography_naive(in_src, in_dst)
                 _, err_tmp = Solution.test_homography(homography_fixed, match_p_src, match_p_dst, max_err)
-                if best_err is None or err_tmp < best_err:
+                if err_tmp < best_err:
                     best_err = err_tmp
                     best_homography = homography_fixed
 
